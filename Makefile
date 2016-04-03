@@ -6,8 +6,8 @@ endif
 ## Global variables
 ## ======================
 
-SAVE_FILES	= oot3dhax_eur.bin oot3dhax_usa.bin oot3dhax_jpn.bin
-REGIONS		= 2 1 0
+SAVE_FILES	= oot3dhax_kor.bin oot3dhax_eur.bin oot3dhax_usa.bin oot3dhax_jpn.bin
+REGIONS		= 3 2 1 0
 ELF_FILES	= $(SAVE_FILES:.bin=.elf)
 
 ## ======================
@@ -48,6 +48,7 @@ all: requirements
 	$(MAKE) DREGION=$(word 1,$(subst :, ,$(REGIONS))) $(word 1,$(subst :, ,$(SAVE_FILES)))
 	$(MAKE) DREGION=$(word 2,$(subst :, ,$(REGIONS))) $(word 2,$(subst :, ,$(SAVE_FILES)))
 	$(MAKE) DREGION=$(word 3,$(subst :, ,$(REGIONS))) $(word 3,$(subst :, ,$(SAVE_FILES)))
+	$(MAKE) DREGION=$(word 4,$(subst :, ,$(REGIONS))) $(word 4,$(subst :, ,$(SAVE_FILES)))
 
 ## ======================
 ## Check requirements
